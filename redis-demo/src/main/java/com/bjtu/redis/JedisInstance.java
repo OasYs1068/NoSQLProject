@@ -15,8 +15,8 @@ public class JedisInstance {
         //私有化枚举的构造函数
         private SingletonEnum(){
             JedisPoolConfig config = new JedisPoolConfig();
-            config.setMaxTotal(30);
-            config.setMaxIdle(10);
+            config.setMaxTotal(3000);
+            config.setMaxIdle(1000);
 
             jedisPool = new JedisPool(config, "127.0.0.1", 6379);
         }

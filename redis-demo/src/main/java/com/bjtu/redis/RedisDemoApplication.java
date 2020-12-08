@@ -3,6 +3,11 @@ package com.bjtu.redis;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+
+import java.text.SimpleDateFormat;
+import java.util.*;
 /**
  *  SpringBootApplication
  * 用于代替 @SpringBootConfiguration（@Configuration）、 @EnableAutoConfiguration 、 @ComponentScan。
@@ -13,9 +18,142 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication
 public class RedisDemoApplication {
+    public static String key;
+    public static String list;
+    public static String keyField;
+    public static HashMap<String, Counter> counters;
 
     public static void main(String[] args) {
-        SpringApplication.run(RedisDemoApplication.class, args);
+        counters = new HashMap<>();
+        readCounterConfig();
+
+        while (true) {
+            System.out.println("Please enter the number of operation you choose:");
+            System.out.println("0 show");
+            System.out.println("1 incr");
+            System.out.println("2 decr");
+            System.out.println("3 incr_freq");
+            System.out.println("4 decr_freq");
+            System.out.println("5 exit");
+            Scanner scanner = new Scanner(System.in);
+            int x = scanner.nextInt();
+
+            switch (x) {
+
+                case 5:
+                    System.exit(0);
+
+                case 0:
+                    Counter c0 = counters.get("show");
+                    show(c0);
+                    break;
+                case 1:
+                    Counter c11 = counters.get("show");
+                    show(c11);
+                    Counter c12 = counters.get("incr");
+                    incr(c12);
+                    break;
+                case 2:
+                    Counter c21 = counters.get("show");
+                    show(c21);
+                    Counter c22 = counters.get("decr");
+                    decr(c22);
+                    break;
+                case 3:
+                    Counter c3 = counters.get("incrFreq");
+                    incrFreq(c3);
+                    break;
+                case 4:
+                    Counter c4 = counters.get("decrFreq");
+                    decrFreq(c4);
+                    break;
+
+            }
+
+        }
+    }
+
+    public static void readCounterConfig() {
+        String path = RedisDemoApplication.class.getClassLoader().getResource("Counter.json").getPath();
+        String countersString = ReadFile.readJsonFile(path);
+        JSONObject counterss = JSONObject.parseObject(countersString);
+        JSONArray array = counterss.getJSONArray("counters");
+        for (Object obj : array) {
+            Counter c = new Counter((JSONObject) obj);
+            counters.put(c.getName(), c);
+        }
+    }
+
+
+
+    private static void show(Counter c) {
+        key = c.getKey().get(0);
+
+        RedisUtil redisUtil = new RedisUtil();
+        try {
+            System.out.println("The value of " + key + " is " + redisUtil.get(key));
+        } catch (Exception e) {
+            System.out.println(e.getStackTrace());
+        }
+
+    }
+
+    private static void incr(Counter incr) {
+        key = incr.getKey().get(0);
+        list = incr.getKey().get(1);
+        RedisUtil redisUtil = new RedisUtil();
+        try {
+            redisUtil.incr(key, incr.getValue());
+            System.out.println("The value of " + key + " increased by " + incr.getValue() + " and became " + redisUtil.get(key));
+            SimpleDateFormat time = new SimpleDateFormat("yyyyMMddHHmm");
+            Date date = new Date();
+            String string=time.format(date);
+            redisUtil.lpush(list,string);
+        } catch (Exception e) {
+            System.out.println(e.getStackTrace());
+        }
+    }
+
+    private static void decr(Counter decr) {
+        key = decr.getKey().get(0);
+        list = decr.getKey().get(1);
+        RedisUtil redisUtil = new RedisUtil();
+        try {
+            redisUtil.decr(key, decr.getValue());
+            System.out.println("The value of " + key + " decreased by " + decr.getValue() + " and became " + redisUtil.get(key));
+            SimpleDateFormat time = new SimpleDateFormat("yyyyMMddHHmm");
+            Date date = new Date();
+            String string=time.format(date);
+            redisUtil.lpush(list,string);
+        } catch (Exception e) {
+            System.out.println(e.getStackTrace());
+        }
+    }
+
+    public static void incrFreq(Counter counter){
+        keyField = counter.getKey().get(0);
+        RedisUtil redisUtil=new RedisUtil();
+        try{
+            for (int i = 0; i < redisUtil.llen(keyField); i++) {
+                String t=redisUtil.lindex(keyField,i);
+                System.out.println("USER在 "+t+" 进入");
+
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void decrFreq(Counter counter){
+        keyField = counter.getKey().get(0);
+        RedisUtil redisUtil=new RedisUtil();
+        try{
+            for (int i = 0; i < redisUtil.llen(keyField); i++) {
+                System.out.println("USER在 "+redisUtil.lindex(keyField,i)+" 退出");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
 
